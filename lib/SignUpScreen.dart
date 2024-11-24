@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'SignInScreen.dart'; // Điều chỉnh đường dẫn nếu cần
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -7,7 +8,71 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  String _selectedRole = 'Traveler'; 
+  String _selectedRole = 'Traveler';
+
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  // Hàm xử lý đăng ký người dùng
+  Future<void> _signUp() async {
+    final firstName = _firstNameController.text;
+    final lastName = _lastNameController.text;
+    final email = _emailController.text;
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Vui lòng điền đầy đủ thông tin!")),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Mật khẩu không khớp!")),
+      );
+      return;
+    }
+
+    // Thực hiện gọi API đăng ký
+    try {
+      final response = await http.post(
+        Uri.parse('https://api-ltdd.onrender.com/user/signup'),
+        body: json.encode({
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+          'password': password,
+          'role': _selectedRole, // 'Traveler' hoặc 'Guide'
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Đăng ký thành công! Vui lòng đăng nhập.")),
+        );
+        Navigator.pop(context); // Quay lại màn hình đăng nhập
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Đăng ký thất bại, vui lòng thử lại!")),
+        );
+      }
+    } catch (error) {
+      print('Lỗi xảy ra: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Có lỗi xảy ra, vui lòng thử lại!")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,50 +88,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      'assets/logo.png',
-                      height: 60,
-                    ),
+                    Image.asset('assets/logo.png', height: 60),
                   ],
                 ),
               ),
-              Positioned(
-                top: 100,
-                right: 83,
-                child: Image.asset('assets/line.png', height: 60),
-              ),
-              Positioned(
-                top: 70,
-                right: 60,
-                child: Image.asset('assets/cloud.png', height: 60),
-              ),
-              Positioned(
-                top: 50,
-                right: 30,
-                child: Image.asset('assets/maybay.png', height: 60),
-              ),
+              Positioned(top: 100, right: 83, child: Image.asset('assets/line.png', height: 60)),
+              Positioned(top: 70, right: 60, child: Image.asset('assets/cloud.png', height: 60)),
+              Positioned(top: 50, right: 30, child: Image.asset('assets/maybay.png', height: 60)),
             ],
           ),
           Expanded(
             child: ClipPath(
-              clipper: MyCustomClipper(),
               child: Container(
                 color: Colors.white,
-                child: SingleChildScrollView( // Thêm tính năng cuộn
+                child: SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        
                         const SizedBox(height: 20),
                         const Text(
                           'Sign Up',
                           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
-
-                        // Thêm hàng chứa 2 nút chọn
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -75,8 +121,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 title: const Text('Traveler'),
                                 value: 'Traveler',
                                 groupValue: _selectedRole,
-                                onChanged: (String? value) { 
-                                  setState(() {  
+                                onChanged: (String? value) {
+                                  setState(() {
                                     _selectedRole = value!;
                                   });
                                 },
@@ -96,50 +142,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 16),
-                        const Row(
+                        Row(
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'First Name',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 8),
+                                  const Text('First Name', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 8),
                                   TextField(
-                                    decoration: InputDecoration(
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(color: Colors.black),
-                                      ),
-                                      focusedBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(color: Colors.green),
-                                      ),
+                                    controller: _firstNameController,
+                                    decoration: const InputDecoration(
+                                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            SizedBox(width: 16),
+                            const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Last Name',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 8),
+                                  const Text('Last Name', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 8),
                                   TextField(
-                                    decoration: InputDecoration(
-                                      enabledBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(color: Colors.black),
-                                      ),
-                                      focusedBorder: UnderlineInputBorder(
-                                        borderSide: BorderSide(color: Colors.green),
-                                      ),
+                                    controller: _lastNameController,
+                                    decoration: const InputDecoration(
+                                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
                                     ),
                                   ),
                                 ],
@@ -148,73 +181,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Email',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            SizedBox(height: 8),
+                            const Text('Email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
                             TextField(
-                              decoration: InputDecoration(
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.black),
-                                ),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.green),
-                                ),
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Password',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            SizedBox(height: 8),
+                            const Text('Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
                             TextField(
-                              obscureText: true, // Ẩn mật khẩu
-                              decoration: InputDecoration(
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.black),
-                                ),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.green),
-                                ),
+                              controller: _passwordController,
+                              obscureText: true,
+                              decoration: const InputDecoration(
+                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Confirm Password',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            SizedBox(height: 8),
+                            const Text('Confirm Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
                             TextField(
-                              obscureText: true, // Ẩn mật khẩu
-                              decoration: InputDecoration(
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.black),
-                                ),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.green),
-                                ),
+                              controller: _confirmPasswordController,
+                              obscureText: true,
+                              decoration: const InputDecoration(
+                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton(
-                          onPressed: () {},
+                          onPressed: _signUp,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14.0),
                             backgroundColor: Colors.teal,
@@ -227,28 +242,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context); // Chuyển vào trong hàm onPressed
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0), // Điều chỉnh padding nhỏ hơn
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(7.0),
-                                side: const BorderSide(color: Color.fromARGB(255, 253, 253, 253)),
-                              ),
-                              minimumSize: const Size(5, 10), // Kích thước tối thiểu của button
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Thu gọn kích thước button khi nhấn
-                              elevation: 4, // Độ nổi
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Quay lại màn hình đăng nhập
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(7.0),
+                              side: const BorderSide(color: Color.fromARGB(255, 253, 253, 253)),
                             ),
-                            child: const Text(
-                              'Already have an account? Sign in',
-                              style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 163, 210, 237)),
-                            ),
-                          )
-
-
+                          ),
+                          child: const Text(
+                            'Already have an account? Sign in',
+                            style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 163, 210, 237)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -260,22 +270,4 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
-}
-class MyCustomClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-
-    path.moveTo(0, size.height * 0.05);
-    path.quadraticBezierTo(size.width / 2, -size.height * 0.05, size.width, size.height * 0.05);
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

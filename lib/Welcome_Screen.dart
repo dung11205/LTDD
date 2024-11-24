@@ -4,14 +4,17 @@ import 'Chatscreen.dart'; // Import màn hình Chatscreen
 import 'ExploreScreen.dart'; // Import màn hình ExploreScreen mà bạn đã tạo
 import 'NotificationScreen.dart'; // Import màn hình NotificationScreen
 import 'ProfileScreen.dart';
-class TourScreen extends StatefulWidget {
-  const TourScreen({Key? key}) : super(key: key);
+
+class WelcomeScreen extends StatefulWidget {
+  final String token;  // Thêm một biến để lưu token
+
+  const WelcomeScreen({Key? key, required this.token}) : super(key: key);  // Constructor nhận token
 
   @override
-  _TourScreenState createState() => _TourScreenState();
+  _WelcomeScreenState createState() => _WelcomeScreenState();
 }
 
-class _TourScreenState extends State<TourScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> {
   int _selectedIndex = 0;
 
   // Danh sách các màn hình được hiển thị tương ứng với các mục trong BottomNavigationBar
@@ -68,6 +71,3 @@ class _TourScreenState extends State<TourScreen> {
     );
   }
 }
-
-
-
