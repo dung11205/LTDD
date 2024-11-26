@@ -16,7 +16,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  // Hàm xử lý đăng ký người dùng
+  // Lưu trữ thông báo lỗi cho từng trường
+  Map<String, String> _errorMessages = {};
+
   Future<void> _signUp() async {
     final firstName = _firstNameController.text;
     final lastName = _lastNameController.text;
@@ -24,21 +26,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Vui lòng điền đầy đủ thông tin!")),
-      );
-      return;
-    }
+    // Xóa lỗi cũ
+    setState(() {
+      _errorMessages.clear();
+    });
 
+    // Kiểm tra điều kiện nhập liệu
+    if (firstName.isEmpty) {
+      _errorMessages['firstName'] = "Vui lòng nhập First Name.";
+    }
+    if (lastName.isEmpty) {
+      _errorMessages['lastName'] = "Vui lòng nhập Last Name.";
+    }
+    if (email.isEmpty) {
+      _errorMessages['email'] = "Vui lòng nhập Email.";
+    }
+    if (password.isEmpty) {
+      _errorMessages['password'] = "Vui lòng nhập Password.";
+    }
+    if (confirmPassword.isEmpty) {
+      _errorMessages['confirmPassword'] = "Vui lòng nhập Confirm Password.";
+    }
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Mật khẩu không khớp!")),
-      );
+      _errorMessages['confirmPassword'] = "Mật khẩu không khớp.";
+    }
+
+    // Nếu có lỗi, không gửi yêu cầu API
+    if (_errorMessages.isNotEmpty) {
+      setState(() {});
       return;
     }
 
-    // Thực hiện gọi API đăng ký
+    // Gửi yêu cầu API nếu không có lỗi
     try {
       final response = await http.post(
         Uri.parse('https://api-ltdd.onrender.com/user/signup'),
@@ -47,29 +66,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
           'lastName': lastName,
           'email': email,
           'password': password,
-          'role': _selectedRole, // 'Traveler' hoặc 'Guide'
+          'role': _selectedRole,
         }),
         headers: {'Content-Type': 'application/json'},
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đăng ký thành công! Vui lòng đăng nhập.")),
-        );
+        // Đăng ký thành công
         Navigator.pop(context); // Quay lại màn hình đăng nhập
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đăng ký thất bại, vui lòng thử lại!")),
-        );
+        // Thông báo lỗi chung nếu đăng ký thất bại
+        setState(() {
+          _errorMessages['general'] = "Đăng ký thất bại. Vui lòng thử lại.";
+        });
       }
     } catch (error) {
-      print('Lỗi xảy ra: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Có lỗi xảy ra, vui lòng thử lại!")),
-      );
+      setState(() {
+        _errorMessages['general'] = "Có lỗi xảy ra. Vui lòng thử lại.";
+      });
     }
   }
 
@@ -98,169 +112,95 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ],
           ),
           Expanded(
-            child: ClipPath(
-              child: Container(
-                color: Colors.white,
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Sign Up',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Traveler'),
-                                value: 'Traveler',
-                                groupValue: _selectedRole,
-                                onChanged: (String? value) {
-                                  setState(() {
-                                    _selectedRole = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Guide'),
-                                value: 'Guide',
-                                groupValue: _selectedRole,
-                                onChanged: (String? value) {
-                                  setState(() {
-                                    _selectedRole = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('First Name', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 8),
-                                  TextField(
-                                    controller: _firstNameController,
-                                    decoration: const InputDecoration(
-                                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Last Name', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 8),
-                                  TextField(
-                                    controller: _lastNameController,
-                                    decoration: const InputDecoration(
-                                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _passwordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Confirm Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _confirmPasswordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _signUp,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            backgroundColor: Colors.teal,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(7.0),
+            child: Container(
+              color: Colors.white,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Sign Up',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: RadioListTile<String>(
+                              title: const Text('Traveler'),
+                              value: 'Traveler',
+                              groupValue: _selectedRole,
+                              onChanged: (String? value) {
+                                setState(() {
+                                  _selectedRole = value!;
+                                });
+                              },
                             ),
                           ),
-                          child: const Text(
-                            'SIGN UP',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context); // Quay lại màn hình đăng nhập
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(7.0),
-                              side: const BorderSide(color: Color.fromARGB(255, 253, 253, 253)),
+                          Expanded(
+                            child: RadioListTile<String>(
+                              title: const Text('Guide'),
+                              value: 'Guide',
+                              groupValue: _selectedRole,
+                              onChanged: (String? value) {
+                                setState(() {
+                                  _selectedRole = value!;
+                                });
+                              },
                             ),
                           ),
-                          child: const Text(
-                            'Already have an account? Sign in',
-                            style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 163, 210, 237)),
-                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField('First Name', _firstNameController, 'firstName'),
+                      _buildTextField('Last Name', _lastNameController, 'lastName'),
+                      _buildTextField('Email', _emailController, 'email'),
+                      _buildTextField('Password', _passwordController, 'password', obscureText: true),
+                      _buildTextField('Confirm Password', _confirmPasswordController, 'confirmPassword', obscureText: true),
+                      if (_errorMessages.containsKey('general')) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _errorMessages['general']!,
+                          style: const TextStyle(color: Colors.red, fontSize: 14),
                         ),
                       ],
-                    ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _signUp,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14.0),
+                          backgroundColor: Colors.teal,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(7.0),
+                          ),
+                        ),
+                        child: const Text(
+                          'SIGN UP',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(7.0),
+                            side: const BorderSide(color: Color.fromARGB(255, 253, 253, 253)),
+                          ),
+                        ),
+                        child: const Text(
+                          'Already have an account? Sign in',
+                          style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 163, 210, 237)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -270,4 +210,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
+
+  Widget _buildTextField(String label, TextEditingController controller, String key, {bool obscureText = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          decoration: InputDecoration(
+            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.green)),
+            errorText: _errorMessages.containsKey(key) ? _errorMessages[key] : null,
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
 }
+ 

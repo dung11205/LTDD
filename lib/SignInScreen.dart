@@ -12,15 +12,16 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String _errorMessage = ""; // Thông báo lỗi hiển thị dưới Password
 
   Future<void> _signIn() async {
     final email = _emailController.text;
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter both email and password.")),
-      );
+      setState(() {
+        _errorMessage = "Vui lòng nhập đầy đủ email và mật khẩu.";
+      });
       return;
     }
 
@@ -32,6 +33,7 @@ class _SignInScreenState extends State<SignInScreen> {
       );
 
       if (response.statusCode == 200) {
+        // Đăng nhập thành công, chuyển đến màn hình chính
         final data = json.decode(response.body);
         final token = data['token'];
         Navigator.pushReplacement(
@@ -39,14 +41,16 @@ class _SignInScreenState extends State<SignInScreen> {
           MaterialPageRoute(builder: (context) => WelcomeScreen(token: token)),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed, please try again.")),
-        );
+        // Đăng nhập thất bại, hiển thị thông báo lỗi chung
+        setState(() {
+          _errorMessage = "Đăng nhập thất bại. Vui lòng thử lại!";
+        });
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error occurred, please try again.")),
-      );
+      // Xử lý lỗi kết nối hoặc lỗi khác
+      setState(() {
+        _errorMessage = "Có lỗi xảy ra. Vui lòng thử lại!";
+      });
     }
   }
 
@@ -73,7 +77,6 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
           Expanded(
             child: ClipPath(
-              clipper: MyCustomClipper(),
               child: Container(
                 color: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
@@ -88,6 +91,13 @@ class _SignInScreenState extends State<SignInScreen> {
                     _buildTextField(_emailController, 'Email'),
                     const SizedBox(height: 16),
                     _buildTextField(_passwordController, 'Password', obscureText: true),
+                    if (_errorMessage.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _errorMessage,
+                        style: const TextStyle(color: Colors.red, fontSize: 14),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
